@@ -8,6 +8,7 @@ import authRoutes from "./auth.js";
 import doctorRoutes from "./doctor.js";
 import patientRoutes from "./patientDetails.js";
 import prescriptionsRoutes from "./prescriptions.js";
+import voice from './voice.js'
 
 // Sample protected route
 router.get('/protected', verifyToken, (req, res) => {
@@ -19,5 +20,7 @@ router.use('/auth', authRoutes);
 router.use('/doctors', doctorRoutes);
 router.use('/patients', patientRoutes);
 router.use('/prescriptions', prescriptionsRoutes);
+router.use('/voice', voice )
+
 
 export default router;
