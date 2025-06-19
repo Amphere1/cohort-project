@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js';
 import doctorRoutes from './routes/doctor.js';
 import patientRoutes from './routes/patientDetails.js';
 import prescriptionRoutes from './routes/prescriptions.js';
+import voice from './routes/voice.js'
 import "./config/passport.js";
 import cors from 'cors';
 import verifyToken from './middleware/auth.js';
@@ -31,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/voice', voice )
 
 // Documentation endpoint for authentication
 app.get("/api/auth/docs", (req, res) => {
