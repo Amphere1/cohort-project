@@ -24,40 +24,61 @@ Before testing endpoints, set up your environment:
    mongod
    ```
 
-3. Start the server:
+3. Create the default admin and receptionist accounts:
+   ```bash
+   node seeds/setupAccounts.js
+   ```
+
+4. Start the server:
    ```bash
    npm start
    ```
 
-4. Set up Postman:
+5. Set up Postman:
    - Download and install Postman from [https://www.postman.com/downloads/](https://www.postman.com/downloads/)
    - Create a new Postman Collection named "Healthcare API"
    - Set up an environment in Postman:
      1. Click on "Environments" in the sidebar
      2. Click "Create Environment" and name it "Healthcare API"
-     3. Add a variable named `BASE_URL` with the value `http://localhost:3000`
-     4. Add variables `TOKEN` and `DOCTOR_TOKEN` (we'll set these after login)
+     3. Add a variable named `BASE_URL` with the value `http://localhost:5000`
+     4. Add variables `ADMIN_TOKEN` and `RECEPTIONIST_TOKEN` (we'll set these after login)
      5. Save the environment and make sure it's selected
 
-5. Load sample doctors (if needed):
+6. Load sample doctors (if needed):
    ```bash
    node seeds/sampleDoctor.js
    ```
 
+## Role-Based Authentication System
+
+The system has three types of users with different permissions:
+
+1. **Admin**: Can manage doctors (create, update, delete), create users, and access all system features
+   - Username: admin
+   - Email: admin@healthclinic.com
+   - Password: HealthClinic@2025 (change after first login)
+
+2. **Receptionist**: Can manage patients, appointments, and prescriptions
+   - Username: receptionist
+   - Email: reception@healthclinic.com
+   - Password: HealthClinic@2025 (change after first login)
+
+3. **Doctor**: Doctors have their own accounts for accessing the system
+   - Use the doctor credentials provided in the README.md file
+
 ## Authentication Endpoints
 
-### User Registration
+### Login as Admin
 
 **Postman Setup:**
 1. Create a new POST request in your collection
-2. URL: `{{BASE_URL}}/api/auth/register`
+2. URL: `{{BASE_URL}}/api/auth/login`
 3. Headers: Add `Content-Type: application/json`
 4. Body: Select "raw" and "JSON", then input:
 ```json
 {
-  "username": "testuser",
-  "email": "test@example.com",
-  "password": "password123"
+  "email": "admin@healthclinic.com",
+  "password": "HealthClinic@2025" 
 }
 ```
 5. Click Send
@@ -65,17 +86,61 @@ Before testing endpoints, set up your environment:
 **Scripts Tab** (to automatically save the token):
 ```javascript
 const response = pm.response.json();
-if (response.success && response.data && response.data.token) {
-    pm.environment.set("TOKEN", response.data.token);
-    console.log("Token saved to environment");
+if (response && response.token) {
+    pm.environment.set("ADMIN_TOKEN", response.token);
+    console.log("Admin token saved to environment");
 }
 ```
 
 **Expected Response:**
 ```json
 {
-  "success": true,
-  "message": "User registered successfully",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "_id": "...",
+    "username": "admin",
+    "email": "admin@healthclinic.com",
+    "role": "admin"
+  }
+}
+```
+
+### Login as Receptionist
+
+**Postman Setup:**
+1. Create a new POST request in your collection
+2. URL: `{{BASE_URL}}/api/auth/login`
+3. Headers: Add `Content-Type: application/json`
+4. Body: Select "raw" and "JSON", then input:
+```json
+{
+  "email": "reception@healthclinic.com",
+  "password": "HealthClinic@2025"
+}
+```
+5. Click Send
+
+**Scripts Tab** (to automatically save the token):
+```javascript
+const response = pm.response.json();
+if (response && response.token) {
+    pm.environment.set("RECEPTIONIST_TOKEN", response.token);
+    console.log("Receptionist token saved to environment");
+}
+```
+
+**Expected Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "_id": "...",
+    "username": "receptionist",
+    "email": "reception@healthclinic.com",
+    "role": "receptionist"
+  }
+}
+```
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user": {
@@ -300,14 +365,14 @@ if (response.success && response.data && response.data.token) {
 
 Requires authentication token.
 
-**Prerequisite:** Make sure you've logged in as a user and have the token stored in the `TOKEN` environment variable.
+**Prerequisite:** Make sure you've logged in as the receptionist and have the token stored in the `RECEPTIONIST_TOKEN` environment variable.
 
 **Postman Setup:**
 1. Create a new POST request in your collection
 2. URL: `{{BASE_URL}}/api/patients`
 3. Headers: 
    - Add `Content-Type: application/json`
-   - Add `Authorization: Bearer {{TOKEN}}`
+   - Add `Authorization: Bearer {{RECEPTIONIST_TOKEN}}`
 4. Body: Select "raw" and "JSON", then input:
 ```json
 {
@@ -334,9 +399,9 @@ Requires authentication token.
       "_id": "...",
       "name": "Patient Name",
       "age": 30,
-      "symptoms": ["fever", "cough", "headache"],
-      "preferredDoctor": "Dr. Rajesh Jones",
+      "symptoms": ["fever", "cough", "headache"],      "preferredDoctor": "Dr. Rajesh Jones",
       "assignedDoctorId": "...",
+      "assignedDoctorName": "Dr. Sarah Johnson",
       "recommendedSpecialization": "General Medicine",
       "appointmentStatus": "scheduled",
       "appointmentDate": "2025-06-19T10:00:00.000Z",
@@ -354,9 +419,9 @@ Requires authentication token.
       "allergies": ["Penicillin"],
       "createdAt": "...",
       "updatedAt": "..."
-    },
-    "appointment": {
+    },    "appointment": {
       "doctorId": "...",
+      "doctorName": "Dr. Sarah Johnson",
       "specialization": "General Medicine",
       "date": "2025-06-19T10:00:00.000Z",
       "status": "scheduled",

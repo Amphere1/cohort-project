@@ -1,15 +1,16 @@
 import express from 'express';
 import Doctor from '../models/doctorModel.js';
 import verifyToken from '../middleware/auth.js';
+import { verifyAdmin, verifyReceptionist } from '../middleware/roleAuth.js';
 
 const router = express.Router();
 
 /**
  * @route   POST /api/doctors
  * @desc    Create a new doctor record
- * @access  Private (Admin)
+ * @access  Private - Admin only
  */
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyAdmin, async (req, res) => {
   try {
     const {
       name,
@@ -88,7 +89,7 @@ router.post('/', verifyToken, async (req, res) => {
  * @desc    Get all doctors with optional filtering
  * @access  Public
  */
-router.get('/', async (req, res) => {
+router.get('/', verifyReceptionist, async (req, res) => {
   try {
     const { specialization, active, search, sort } = req.query;
     const filter = {};
@@ -154,7 +155,7 @@ router.get('/', async (req, res) => {
  * @desc    Get a single doctor by ID
  * @access  Public
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyReceptionist, async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     
@@ -192,7 +193,7 @@ router.get('/:id', async (req, res) => {
  * @desc    Get doctor by registration number
  * @access  Public
  */
-router.get('/reg/:number', async (req, res) => {
+router.get('/reg/:number', verifyAdmin, async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ 
       $or: [
@@ -227,7 +228,7 @@ router.get('/reg/:number', async (req, res) => {
  * @desc    Update a doctor record
  * @access  Private
  */
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', verifyAdmin, async (req, res) => {
   try {
     // Check if the doctor exists
     let doctor = await Doctor.findById(req.params.id);
@@ -304,7 +305,7 @@ router.put('/:id', verifyToken, async (req, res) => {
  * @desc    Toggle doctor's active status
  * @access  Private
  */
-router.patch('/:id/status', verifyToken, async (req, res) => {
+router.patch('/:id/status', verifyAdmin, async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     
@@ -338,7 +339,7 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
  * @desc    Add rating for a doctor
  * @access  Private
  */
-router.post('/:id/rate', verifyToken, async (req, res) => {
+router.post('/:id/rate', verifyReceptionist, async (req, res) => {
   try {
     const { rating } = req.body;
     
@@ -393,7 +394,7 @@ router.post('/:id/rate', verifyToken, async (req, res) => {
  * @desc    Delete a doctor
  * @access  Private (Admin)
  */
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     
@@ -426,7 +427,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
  * @desc    Get list of all specializations
  * @access  Public
  */
-router.get('/list/specializations', async (req, res) => {
+router.get('/list/specializations', verifyReceptionist, async (req, res) => {
   try {
     const specializations = await Doctor.distinct('specialization');
     

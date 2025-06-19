@@ -1,15 +1,16 @@
 import express from 'express';
 import PatientDetail from '../models/patientDeatilsModel.js';
 import verifyToken from '../middleware/auth.js';
+import { verifyReceptionist } from '../middleware/roleAuth.js';
 
 const router = express.Router();
 
 /**
  * @route   POST /api/patients
  * @desc    Create a new patient record with automatic doctor assignment
- * @access  Private 
+ * @access  Private - Receptionist only
  */
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyReceptionist, async (req, res) => {
   try {
     const { name, age, symptoms, preferredDoctor, appointmentReason } = req.body;
 
@@ -55,14 +56,14 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Calculate appointment date (next business day)
     const appointmentDate = calculateNextBusinessDay();
-    
-    // Create new patient with provided details and assigned doctor
+      // Create new patient with provided details and assigned doctor
     const newPatient = new PatientDetail({
       name,
       age,
       symptoms,
       preferredDoctor,
       assignedDoctorId: doctorAssignment.doctorId,
+      assignedDoctorName: doctorAssignment.doctorName,
       recommendedSpecialization: doctorAssignment.specialization,
       appointmentStatus: 'scheduled',
       appointmentDate: appointmentDate,
@@ -78,10 +79,10 @@ router.post('/', verifyToken, async (req, res) => {
     
     // Save the patient
     const savedPatient = await newPatient.save();
-    
-    // Generate appointment info for response
+      // Generate appointment info for response
     const appointmentInfo = {
       doctorId: savedPatient.assignedDoctorId,
+      doctorName: savedPatient.assignedDoctorName,
       specialization: savedPatient.recommendedSpecialization,
       date: savedPatient.appointmentDate,
       status: savedPatient.appointmentStatus,
@@ -140,9 +141,9 @@ function calculateNextBusinessDay() {
 /**
  * @route   GET /api/patients
  * @desc    Get all patients (with optional filtering)
- * @access  Private
+ * @access  Private - Receptionist only
  */
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', verifyReceptionist, async (req, res) => {
   try {
     const { completed, doctor, search } = req.query;
     const filter = {};
@@ -186,9 +187,9 @@ router.get('/', verifyToken, async (req, res) => {
 /**
  * @route   GET /api/patients/:id
  * @desc    Get a single patient by ID
- * @access  Private
+ * @access  Private - Receptionist only
  */
-router.get('/:id', verifyToken, async (req, res) => {
+router.get('/:id', verifyReceptionist, async (req, res) => {
   try {
     const patient = await PatientDetail.findById(req.params.id);
     
@@ -224,9 +225,9 @@ router.get('/:id', verifyToken, async (req, res) => {
 /**
  * @route   PUT /api/patients/:id
  * @desc    Update a patient
- * @access  Private
+ * @access  Private - Receptionist only
  */
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', verifyReceptionist, async (req, res) => {
   try {
     // Find the patient
     let patient = await PatientDetail.findById(req.params.id);
@@ -275,7 +276,7 @@ router.put('/:id', verifyToken, async (req, res) => {
  * @desc    Toggle appointment completion status
  * @access  Private
  */
-router.patch('/:id/complete', verifyToken, async (req, res) => {
+router.patch('/:id/complete', verifyReceptionist, async (req, res) => {
   try {
     const patient = await PatientDetail.findById(req.params.id);
     
@@ -317,7 +318,7 @@ router.patch('/:id/complete', verifyToken, async (req, res) => {
  * @desc    Get all appointments
  * @access  Private
  */
-router.get('/appointments', verifyToken, async (req, res) => {
+router.get('/appointments', verifyReceptionist, async (req, res) => {
   try {
     const { status, doctorId, startDate, endDate } = req.query;
     const filter = {};
@@ -368,7 +369,7 @@ router.get('/appointments', verifyToken, async (req, res) => {
  * @desc    Update appointment details
  * @access  Private
  */
-router.put('/:id/appointment', verifyToken, async (req, res) => {
+router.put('/:id/appointment', verifyReceptionist, async (req, res) => {
   try {
     const { appointmentStatus, appointmentDate, assignedDoctorId } = req.body;
     
@@ -420,7 +421,7 @@ router.put('/:id/appointment', verifyToken, async (req, res) => {
  * @desc    Delete a patient
  * @access  Private
  */
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyReceptionist, async (req, res) => {
   try {
     const patient = await PatientDetail.findById(req.params.id);
     

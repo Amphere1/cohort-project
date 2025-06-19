@@ -24,6 +24,7 @@ const SpecializationMatchSchema = z.object({
 // Schema for doctor recommendation
 const DoctorRecommendationSchema = z.object({
   doctorId: z.string().optional().describe("The MongoDB ID of the recommended doctor"),
+  doctorName: z.string().optional().describe("The name of the recommended doctor"),
   specialization: z.string().describe("The specialization that best matches the symptoms")
 });
 
@@ -98,8 +99,7 @@ export const assignDoctorForSymptoms = ai.defineFlow(
     }),
     outputSchema: DoctorRecommendationSchema,
   },
-  async ({ symptoms, preferredDoctor }) => {
-    // If preferred doctor is specified, try to find that doctor
+  async ({ symptoms, preferredDoctor }) => {    // If preferred doctor is specified, try to find that doctor
     if (preferredDoctor) {
       const doctor = await Doctor.findOne({ 
         name: { $regex: preferredDoctor, $options: 'i' },
@@ -109,6 +109,7 @@ export const assignDoctorForSymptoms = ai.defineFlow(
       if (doctor) {
         return {
           doctorId: doctor._id.toString(),
+          doctorName: doctor.name,
           specialization: doctor.specialization
         };
       }
@@ -123,10 +124,10 @@ export const assignDoctorForSymptoms = ai.defineFlow(
       specializationMatch.recommendedSpecialization, 
       specializationMatch.alternativeSpecializations
     );
-    
-    if (doctor) {
+      if (doctor) {
       return {
         doctorId: doctor._id.toString(),
+        doctorName: doctor.name,
         specialization: doctor.specialization
       };
     } else {

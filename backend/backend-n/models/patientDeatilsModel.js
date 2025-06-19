@@ -42,11 +42,14 @@ const patientDetailSchema = new mongoose.Schema({
   appointmentComplete: {
     type: Boolean,
     default: false
-  },
-  // New fields for doctor appointment integration
+  },  // New fields for doctor appointment integration
   assignedDoctorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Doctor'
+  },
+  assignedDoctorName: {
+    type: String,
+    trim: true
   },
   recommendedSpecialization: {
     type: String,
@@ -93,6 +96,7 @@ patientDetailSchema.index({
   name: 'text', 
   symptoms: 'text',
   preferredDoctor: 'text',
+  assignedDoctorName: 'text',
   recommendedSpecialization: 'text',
   appointmentReason: 'text',
   'caseSummary.summary': 'text'

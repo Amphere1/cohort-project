@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 const router = express.Router();
 
-// User registration route
+// User registration route - admin only
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -42,7 +42,8 @@ router.post('/register', async (req, res) => {
             {
                 _id: user._id,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                role: user.role
             },
             process.env.SECRET_KEY,
             { expiresIn: '24h' }
@@ -53,7 +54,8 @@ router.post('/register', async (req, res) => {
     user: {
         _id: user._id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        role: user.role
     }
 });
     } catch (error) {
@@ -85,10 +87,11 @@ router.post('/login', async (req, res) => {
             {
                 _id: user._id,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                role: user.role
             },
             process.env.SECRET_KEY,
-            { expiresIn: '24h' }
+            { expiresIn: '7d' } // Extended token expiration to 7 days for convenience
         );
 
         res.json({
@@ -96,7 +99,8 @@ router.post('/login', async (req, res) => {
             user: {
                 _id: user._id,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                role: user.role
             }
         });
     } catch (error) {

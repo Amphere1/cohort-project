@@ -1,6 +1,7 @@
 import express from 'express';
 import verifyToken from '../middleware/auth.js';
 import verifyDoctor from '../middleware/doctorAuth.js';
+import { verifyReceptionist } from '../middleware/roleAuth.js';
 import { 
   generatePrescription, 
   applyDoctorModifications, 
@@ -11,7 +12,7 @@ import {
 const router = express.Router();
 
 // Get a doctor's prescription preferences
-router.get('/doctor-preferences', verifyToken, async (req, res) => {
+router.get('/doctor-preferences', verifyReceptionist, async (req, res) => {
   try {
     const DoctorPreferences = await import('../models/doctorPreferencesModel.js').then(m => m.default);
     const doctorId = req.user._id;
@@ -40,7 +41,7 @@ router.get('/doctor-preferences', verifyToken, async (req, res) => {
 });
 
 // Generate a prescription recommendation
-router.post('/generate', verifyToken, async (req, res) => {
+router.post('/generate', verifyReceptionist, async (req, res) => {
   try {
     // Add doctor ID to the patient info for personalized recommendations
     const patientInfo = {
@@ -72,7 +73,7 @@ router.post('/generate', verifyToken, async (req, res) => {
 });
 
 // Apply doctor's modifications to a prescription and learn from them
-router.post('/modify', verifyToken, async (req, res) => {
+router.post('/modify', verifyReceptionist, async (req, res) => {
   try {
     const { originalPrescription, modifications } = req.body;
     const doctorId = req.user._id;
