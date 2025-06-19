@@ -33,6 +33,7 @@ export default function DoctorAppointmentsPage() {
   }, []);
 
   return (
+    <main>
     <div>
       <h1 className="text-2xl font-bold text-primary mb-6">My Appointments</h1>
       {loading ? (
@@ -58,5 +59,6 @@ export default function DoctorAppointmentsPage() {
         </div>
       )}
     </div>
+    </main>
   );
 }

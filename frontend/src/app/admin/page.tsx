@@ -41,7 +41,7 @@ export default function AdminAddDoctorPage() {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/add-doctor`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/doctor-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,7 +73,8 @@ export default function AdminAddDoctorPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary-light">
+    <main>
+      <div className="flex min-h-screen items-center justify-center bg-primary-light">
       <Card className="w-full max-w-lg shadow-lg">
         <CardHeader>
           <CardTitle className="text-primary">Add/Edit Doctor</CardTitle>
@@ -161,5 +162,6 @@ export default function AdminAddDoctorPage() {
         </CardContent>
       </Card>
     </div>
+    </main>
   );
 }

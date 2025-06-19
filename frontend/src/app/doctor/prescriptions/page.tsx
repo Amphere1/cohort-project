@@ -124,6 +124,7 @@ export default function DoctorPrescriptionsPage() {
   };
 
   return (
+    <main>
     <div>
       <h1 className="text-2xl font-bold text-primary mb-6">AI Prescriptions</h1>
       <Card className="mb-6">
@@ -228,5 +229,6 @@ export default function DoctorPrescriptionsPage() {
         </CardContent>
       </Card>
     </div>
+    </main>
   );
 }

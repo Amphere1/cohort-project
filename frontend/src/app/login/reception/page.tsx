@@ -30,7 +30,7 @@ export default function ReceptionistLoginPage() {
         // Save token and user info to localStorage
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        router.push('/receptionist/dashboard');
+        router.push('/receptionist/make-appointment');
       } else {
         setError(data.message || 'Login failed');
       }

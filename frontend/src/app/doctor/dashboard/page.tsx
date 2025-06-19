@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function DoctorDashboard() {
   return (
+    <main>
     <div>
       <h1 className="text-2xl font-bold text-primary mb-6">Doctor Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -50,5 +51,6 @@ export default function DoctorDashboard() {
         </Link>
       </div>
     </div>
+    </main>
   );
 }

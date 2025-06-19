@@ -62,6 +62,7 @@ export default function DoctorPreferencesPage() {
   );
 
   return (
+    <main>
     <div>
       <h1 className="text-2xl font-bold text-primary mb-6">Prescription Preferences</h1>
       <Card>
@@ -113,5 +114,6 @@ export default function DoctorPreferencesPage() {
         </CardContent>
       </Card>
     </div>
+    </main>
   );
 }

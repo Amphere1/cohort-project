@@ -45,6 +45,7 @@ export default function DoctorPatientsPage() {
   );
 
   return (
+    <main>
     <div>
       <h1 className="text-2xl font-bold text-primary mb-6">Patients & Medical History</h1>
       <Input
@@ -114,5 +115,6 @@ export default function DoctorPatientsPage() {
         </div>
       </div>
     </div>
+    </main>
   );
 }
