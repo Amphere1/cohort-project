@@ -22,7 +22,7 @@ export default function ReceptionLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');    try {
-      await loginUser('http://localhost:3001/api/auth/login', formData);
+      await loginUser(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, formData);
       router.push('/reception');
     } catch (err: unknown) {
       setError((err as Error).message || 'Login failed. Please try again.');

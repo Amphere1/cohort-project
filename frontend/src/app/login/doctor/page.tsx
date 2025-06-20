@@ -21,9 +21,8 @@ export default function DoctorLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');    try {
-      console.log('Doctor login: Attempting login with credentials:', formData);
-      const response = await loginUser('http://localhost:3001/api/auth/login/doctor', formData);
+    setError('');    try {      console.log('Doctor login: Attempting login with credentials:', formData);
+      const response = await loginUser(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/doctor-login`, formData);
       console.log('Doctor login: Login successful, response:', response);
       console.log('Doctor login: User data stored:', response.user);
       console.log('Doctor login: User role:', response.user.role);
