@@ -50,4 +50,46 @@ router.post('/STT', upload.single('audio'), async (req, res) => {
         fs.unlinkSync(req.file.path);
     }
 });
+
+router.get('/TTS',async (req,res)=>{
+    // const { text } = req.query||"congrats!, your appointment has been scheduled with doctor" // input the text
+const text = "Congrats! Your appointment has been scheduled with the doctor.";
+
+  if (!text) {
+    return res.status(400).json({ error: "Text query param is required" });
+  }
+
+  try {
+    const voiceId = process.env.VOICE_ID || "21m00Tcm4TlvDq8ikWAM"; // Rachel
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "xi-api-key": process.env.ELEVENLABS_API_KEY,
+        "accept": "audio/mpeg",
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: "eleven_monolingual_v1", 
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.5,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return res.status(response.status).json({ error });
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.send(Buffer.from(audioBuffer));
+  } catch (err) {
+    console.error("TTS API error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+})
+
 export default router
