@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { loginUser } from '@/lib/api';
+import { buildApiUrl } from '@/lib/config';
 import { Stethoscope, ArrowLeft } from 'lucide-react';
 
 export default function DoctorLoginPage() {
@@ -23,7 +24,7 @@ export default function DoctorLoginPage() {
     setLoading(true);
     setError('');    try {      console.log('Doctor login: Attempting login with credentials:', formData);
       console.log('Using backend URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-      const response = await loginUser(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/doctor-login`, formData);
+      const response = await loginUser(buildApiUrl('/api/auth/doctor-login'), formData);
       console.log('Doctor login: Login successful, response:', response);
       console.log('Doctor login: User data stored:', response.user);
       console.log('Doctor login: User role:', response.user.role);

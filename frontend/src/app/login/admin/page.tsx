@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { loginUser } from '@/lib/api';
+import { buildApiUrl } from '@/lib/config';
 import { Shield, ArrowLeft } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -22,7 +23,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');    try {
-      await loginUser(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, formData);
+      await loginUser(buildApiUrl('/api/auth/login'), formData);
       router.push('/admin');
     } catch (err: unknown) {
       setError((err as Error).message || 'Login failed. Please try again.');

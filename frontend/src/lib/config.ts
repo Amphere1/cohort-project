@@ -21,7 +21,9 @@ export const buildApiUrl = (endpoint: string): string => {
   // Ensure endpoint starts with /
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
-  return `${config.BACKEND_URL}${normalizedEndpoint}`;
+  const fullUrl = `${config.BACKEND_URL}${normalizedEndpoint}`;
+  console.log(`buildApiUrl: ${endpoint} -> ${fullUrl} (BACKEND_URL: ${config.BACKEND_URL})`);
+  return fullUrl;
 };
 
 // Export commonly used API base paths
