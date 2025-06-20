@@ -41,40 +41,19 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState<Date | null>(null); // Start as null to prevent hydration mismatch
   const [doctor, setDoctor] = useState<User | null>(null);
-  const [totalAppointments, setTotalAppointments] = useState(0); // For debugging  // Fetch doctor data on component mount
-  useEffect(() => {
-    const user = getCurrentUser();
-    console.log('Dashboard: Current user from localStorage:', user);
-    console.log('Dashboard: Token from localStorage:', localStorage.getItem('token'));
-    console.log('Dashboard: Raw user string from localStorage:', localStorage.getItem('user'));
-    
-    if (!user) {
-      console.log('Dashboard: No user found, redirecting to login');
-      router.push('/login/doctor');
-      return;
-    }
-    
-    if (user.role !== 'doctor') {
-      console.log('Dashboard: User role is not doctor, role:', user.role, 'redirecting to login');
-      router.push('/login/doctor');
-      return;
-    }
-      console.log('Dashboard: User authenticated as doctor, setting user data');
-    setDoctor(user);
-    
-    // Initialize time on client side to prevent hydration mismatch
-    setCurrentTime(new Date());
-    
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    
-    return () => clearInterval(timeInterval);}, [router]);  // Fetch appointments and recent prescriptions
+  const [totalAppointments, setTotalAppointments] = useState(0); // For debugging
+  
+  // Fetch appointments and recent prescriptions
   const fetchDashboardData = useCallback(async () => {
+    const currentUser = getCurrentUser();
+    if (!currentUser || currentUser.role !== 'doctor') {
+      console.log('Dashboard: No valid doctor user found during data fetch');
+      return;
+    }
+    
     setLoading(true);
     try {
-      console.log('Dashboard: Current doctor user:', doctor);
+      console.log('Dashboard: Current doctor user:', currentUser);
       console.log('Dashboard: Making API request to /api/doctor/appointments');
       
       // Fetch all appointments
@@ -93,21 +72,64 @@ export default function DoctorDashboard() {
         name: a.name,
         date: a.appointmentDate,
         status: a.appointmentStatus
-      })));      // TEMPORARY: Show all appointments for debugging
+      })));
+      
+      // TEMPORARY: Show all appointments for debugging
       console.log('Dashboard: Showing ALL appointments for debugging');
       const todaysAppts = sortedAppointments;
       
       console.log('Dashboard: Found today\'s appointments:', todaysAppts.length);
       console.log('Dashboard: Today\'s appointments data:', todaysAppts);
       setTodaysAppointments(todaysAppts);
+      
       // Fetch recent prescriptions
       const prescriptionsData = await apiRequest<{prescriptions: Prescription[]}>('/api/prescriptions/doctor-prescriptions?limit=5');
-      setRecentPrescriptions(prescriptionsData.prescriptions || []);      setLoading(false);
+      setRecentPrescriptions(prescriptionsData.prescriptions || []);
+      
+      setLoading(false);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
       setLoading(false);
     }
-  }, [doctor]);
+  }, []);
+
+  // Fetch doctor data on component mount
+  useEffect(() => {
+    const user = getCurrentUser();
+    console.log('Dashboard: Current user from localStorage:', user);
+    console.log('Dashboard: Token from localStorage:', localStorage.getItem('token'));
+    console.log('Dashboard: Raw user string from localStorage:', localStorage.getItem('user'));
+    
+    if (!user) {
+      console.log('Dashboard: No user found, redirecting to login');
+      router.push('/login/doctor');
+      return;
+    }
+    
+    if (user.role !== 'doctor') {
+      console.log('Dashboard: User role is not doctor, role:', user.role, 'redirecting to login');
+      router.push('/login/doctor');
+      return;
+    }      console.log('Dashboard: User authenticated as doctor, setting user data');
+    setDoctor(user);
+    
+    // Initialize time on client side to prevent hydration mismatch
+    setCurrentTime(new Date());
+    
+    // Update time every minute
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    
+    return () => clearInterval(timeInterval);
+  }, [router]);
+  
+  // Fetch data when doctor is set
+  useEffect(() => {
+    if (doctor) {
+      fetchDashboardData();
+    }  }, [doctor, fetchDashboardData]);
+
   useEffect(() => {
     fetchDashboardData();
     
