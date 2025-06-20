@@ -41,11 +41,12 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState<Date | null>(null); // Start as null to prevent hydration mismatch
   const [doctor, setDoctor] = useState<User | null>(null);
-  const [totalAppointments, setTotalAppointments] = useState(0); // For debugging
-  // Fetch doctor data on component mount
+  const [totalAppointments, setTotalAppointments] = useState(0); // For debugging  // Fetch doctor data on component mount
   useEffect(() => {
     const user = getCurrentUser();
     console.log('Dashboard: Current user from localStorage:', user);
+    console.log('Dashboard: Token from localStorage:', localStorage.getItem('token'));
+    console.log('Dashboard: Raw user string from localStorage:', localStorage.getItem('user'));
     
     if (!user) {
       console.log('Dashboard: No user found, redirecting to login');

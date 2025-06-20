@@ -22,10 +22,15 @@ export default function DoctorLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');    try {      console.log('Doctor login: Attempting login with credentials:', formData);
+      console.log('Using backend URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
       const response = await loginUser(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/doctor-login`, formData);
       console.log('Doctor login: Login successful, response:', response);
       console.log('Doctor login: User data stored:', response.user);
       console.log('Doctor login: User role:', response.user.role);
+      
+      // Verify localStorage was set correctly
+      console.log('Doctor login: Token in localStorage:', localStorage.getItem('token'));
+      console.log('Doctor login: User in localStorage:', localStorage.getItem('user'));
       
       router.push('/doctor/dashboard');} catch (err: unknown) {
       setError((err as Error).message || 'Login failed. Please try again.');
