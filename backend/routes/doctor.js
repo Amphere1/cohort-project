@@ -1,9 +1,206 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Doctor from '../models/doctorModel.js';
 import verifyToken from '../middleware/auth.js';
+import verifyDoctor from '../middleware/doctorAuth.js';
 import { verifyAdmin, verifyReceptionist } from '../middleware/roleAuth.js';
 
 const router = express.Router();
+
+// =========================
+// DOCTOR-SPECIFIC ROUTES (must come first to avoid conflicts with parameterized routes)
+// =========================
+
+/**
+ * @route   GET /api/doctor/appointments
+ * @desc    Get all appointments for the logged-in doctor
+ * @access  Private - Doctor only
+ */
+router.get('/appointments', verifyDoctor, async (req, res) => {
+  try {
+    const doctorId = req.doctorData.doctorId;
+    console.log('Doctor appointments query - doctorId from token:', doctorId);
+    
+    const PatientDetail = await import('../models/patientDeatilsModel.js').then(m => m.default);
+    
+    // Get all appointments assigned to this doctor
+    // Convert doctorId string to ObjectId for proper comparison
+    const objectId = new mongoose.Types.ObjectId(doctorId);
+    console.log('Doctor appointments query - converted ObjectId:', objectId);
+    
+    const appointments = await PatientDetail.find({ 
+      assignedDoctorId: objectId
+    }).sort({ appointmentDate: -1 });
+    
+    console.log('Doctor appointments query - found appointments:', appointments.length);
+    
+    res.status(200).json({
+      success: true,
+      appointments: appointments,
+      count: appointments.length
+    });
+  } catch (error) {
+    console.error('Error fetching doctor appointments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/doctor/appointments/:id
+ * @desc    Get a specific appointment details for the logged-in doctor
+ * @access  Private - Doctor only
+ */
+router.get('/appointments/:id', verifyDoctor, async (req, res) => {
+  try {
+    const doctorId = req.doctorData.doctorId;
+    const appointmentId = req.params.id;
+    
+    const PatientDetail = await import('../models/patientDeatilsModel.js').then(m => m.default);
+    
+    // Get the specific appointment, but only if it's assigned to this doctor
+    const appointment = await PatientDetail.findOne({ 
+      _id: new mongoose.Types.ObjectId(appointmentId),
+      assignedDoctorId: new mongoose.Types.ObjectId(doctorId)
+    });
+    
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found or not assigned to you'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: appointment
+    });
+  } catch (error) {
+    console.error('Error fetching doctor appointment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/doctor/appointments/today
+ * @desc    Get today's appointments for the logged-in doctor
+ * @access  Private - Doctor only
+ */
+router.get('/appointments/today', verifyDoctor, async (req, res) => {
+  try {
+    const doctorId = req.doctorData.doctorId;
+    
+    const PatientDetail = await import('../models/patientDeatilsModel.js').then(m => m.default);
+    
+    // Get today's date range
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+      // Get today's appointments for this doctor
+    const appointments = await PatientDetail.find({ 
+      assignedDoctorId: new mongoose.Types.ObjectId(doctorId),
+      appointmentDate: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    }).sort({ appointmentDate: 1 });
+    
+    res.status(200).json({
+      success: true,
+      appointments: appointments,
+      count: appointments.length
+    });
+  } catch (error) {
+    console.error('Error fetching today appointments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/doctor/appointments/:id/regenerate-summary
+ * @desc    Regenerate AI case summary for a specific appointment
+ * @access  Private - Doctor only
+ */
+router.post('/appointments/:id/regenerate-summary', verifyDoctor, async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
+    const doctorId = req.doctorData.doctorId;
+    
+    const PatientDetail = await import('../models/patientDeatilsModel.js').then(m => m.default);
+    
+    // Find the appointment and verify it belongs to this doctor
+    const appointment = await PatientDetail.findOne({
+      _id: appointmentId,
+      assignedDoctorId: new mongoose.Types.ObjectId(doctorId)
+    });
+    
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found or access denied'
+      });
+    }
+    
+    // Import and use the AI case summary function
+    const { summarizePatientCase } = await import('../genkit/appointments.js');
+    
+    try {
+      const caseSummary = await summarizePatientCase({
+        name: appointment.name,
+        age: appointment.age,
+        symptoms: appointment.symptoms,
+        appointmentReason: appointment.appointmentReason
+      });
+      
+      // Update the appointment with the new case summary
+      appointment.caseSummary = {
+        summary: caseSummary.summary,
+        possibleConditions: caseSummary.possibleConditions,
+        recommendedTests: caseSummary.recommendedTests || [],
+        suggestedQuestions: caseSummary.suggestedQuestions
+      };
+      
+      await appointment.save();
+      
+      res.status(200).json({
+        success: true,
+        message: 'Case summary regenerated successfully',
+        caseSummary: appointment.caseSummary
+      });
+      
+    } catch (summaryError) {
+      console.error('Error generating case summary:', summaryError);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate AI case summary',
+        error: summaryError.message
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error regenerating case summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+// =========================
+// ADMIN/RECEPTIONIST ROUTES FOR DOCTOR MANAGEMENT
+// =========================
 
 /**
  * @route   POST /api/doctors
@@ -438,6 +635,253 @@ router.get('/list/specializations', verifyReceptionist, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching specializations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/doctors/:id/appointments
+ * @desc    Create a new appointment for a doctor
+ * @access  Private - Receptionist or Admin
+ */
+router.post('/:id/appointments', verifyReceptionist, async (req, res) => {
+  try {
+    const { patientName, date, time, duration, notes } = req.body;
+    
+    // Validate appointment data
+    if (!patientName || !date || !time || !duration) {
+      return res.status(400).json({
+        success: false,
+        message: 'Patient name, date, time, and duration are required'
+      });
+    }
+    
+    const doctor = await Doctor.findById(req.params.id);
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found'
+      });
+    }
+    
+    // Create new appointment
+    const newAppointment = new Appointment({
+      doctor: req.params.id,
+      patientName,
+      date,
+      time,
+      duration,
+      notes,
+      status: 'scheduled'
+    });
+    
+    const savedAppointment = await newAppointment.save();
+    
+    res.status(201).json({
+      success: true,
+      data: savedAppointment,
+      message: 'Appointment created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating appointment:', error);
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        errors: messages
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/doctors/:id/appointments
+ * @desc    Get all appointments for a doctor
+ * @access  Private - Receptionist or Admin
+ */
+router.get('/:id/appointments', verifyReceptionist, async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found'
+      });
+    }
+    
+    const appointments = await Appointment.find({ doctor: req.params.id });
+    
+    res.status(200).json({
+      success: true,
+      count: appointments.length,
+      data: appointments
+    });
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/doctors/:id/appointments/:appointmentId
+ * @desc    Get a specific appointment for a doctor
+ * @access  Private - Receptionist or Admin
+ */
+router.get('/:id/appointments/:appointmentId', verifyReceptionist, async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found'
+      });
+    }
+    
+    const appointment = await Appointment.findOne({ 
+      _id: req.params.appointmentId, 
+      doctor: req.params.id 
+    });
+    
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: appointment
+    });
+  } catch (error) {
+    console.error('Error fetching appointment:', error);
+    
+    if (error.kind === 'ObjectId') {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found - Invalid ID'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/doctors/:id/appointments/:appointmentId
+ * @desc    Update an appointment for a doctor
+ * @access  Private - Receptionist or Admin
+ */
+router.put('/:id/appointments/:appointmentId', verifyReceptionist, async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found'
+      });
+    }
+    
+    const appointment = await Appointment.findOne({ 
+      _id: req.params.appointmentId, 
+      doctor: req.params.id 
+    });
+    
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+    
+    // Update appointment data
+    Object.assign(appointment, req.body);
+    await appointment.save();
+    
+    res.status(200).json({
+      success: true,
+      data: appointment,
+      message: 'Appointment updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating appointment:', error);
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        errors: messages
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/doctors/:id/appointments/:appointmentId
+ * @desc    Delete an appointment for a doctor
+ * @access  Private - Receptionist or Admin
+ */
+router.delete('/:id/appointments/:appointmentId', verifyReceptionist, async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found'
+      });
+    }
+    
+    const appointment = await Appointment.findOne({ 
+      _id: req.params.appointmentId, 
+      doctor: req.params.id 
+    });
+    
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Appointment not found'
+      });
+    }
+    
+    await appointment.deleteOne();
+    
+    res.status(200).json({
+      success: true,
+      data: {},
+      message: 'Appointment deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting appointment:', error);
     res.status(500).json({
       success: false,
       message: 'Server Error',

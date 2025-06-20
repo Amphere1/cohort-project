@@ -97,12 +97,12 @@ const generateSampleDoctors = async (count) => {
     
     const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@hospital.com`;
     const contactNumber = `+1${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-    
-    // Create a user first
+      // Create a user first
     const user = new User({
       username: `${firstName.toLowerCase()}${lastName.toLowerCase()}`,
       email: email,
-      password: hashedPassword
+      password: hashedPassword,
+      role: 'doctor'
     });
     
     // Save user
@@ -146,9 +146,21 @@ const generateSampleDoctors = async (count) => {
 // Seed function
 const seedDoctors = async () => {
   try {
-    // Clear existing data
+    // Clear existing doctor data and their associated users
+    const existingDoctors = await Doctor.find({});
+    const userIds = existingDoctors.map(doc => doc.userId).filter(id => id);
+    
     await Doctor.deleteMany({});
     console.log('Cleared existing doctor data');
+    
+    // Delete users that were linked to doctors (but preserve admin/receptionist)
+    if (userIds.length > 0) {
+      await User.deleteMany({ 
+        _id: { $in: userIds },
+        role: 'doctor'
+      });
+      console.log('Cleared existing doctor user accounts');
+    }
 
     // Generate and save sample doctors
     const { doctors } = await generateSampleDoctors(10);

@@ -76,32 +76,55 @@ router.post('/login', async (req, res) => {
         const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(400).json({ message: 'Invalid email or password' });
-        }
-
-        // Check password
+        }        // Check password
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
             return res.status(400).json({ message: 'Invalid email or password' });
-        }        // Create and sign JWT with user role
+        }
+
+        // If the user is a doctor, get the doctor record for additional info
+        let doctorInfo = null;
+        if (user.role === 'doctor') {
+            doctorInfo = await Doctor.findOne({ userId: user._id });
+        }
+
+        // Create and sign JWT with user role and doctor info if applicable
+        const tokenPayload = {
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            role: user.role
+        };
+
+        // Add doctor-specific fields if user is a doctor
+        if (user.role === 'doctor' && doctorInfo) {
+            tokenPayload.doctorId = doctorInfo._id;
+            tokenPayload.isDoctor = true;
+        }
+
         const token = jwt.sign(
-            {
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                role: user.role
-            },
+            tokenPayload,
             process.env.SECRET_KEY,
             { expiresIn: '7d' } // Extended token expiration to 7 days for convenience
         );
 
+        const userResponse = {
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            role: user.role
+        };
+
+        // Add doctor-specific info to response if user is a doctor
+        if (user.role === 'doctor' && doctorInfo) {
+            userResponse.doctorId = doctorInfo._id;
+            userResponse.name = doctorInfo.name;
+            userResponse.specialization = doctorInfo.specialization;
+        }
+
         res.json({
             token,
-            user: {
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                role: user.role
-            }
+            user: userResponse
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -471,10 +494,214 @@ router.post('/doctor-setup', async (req, res) => {
                 govtRegistrationNumber: doctor.govtRegistrationNumber,
                 specialization: doctor.specialization
             }
-        });
-    } catch (error) {
+        });    } catch (error) {
         console.error("Doctor setup error:", error);
         res.status(500).json({ message: 'Server error during doctor account setup' });
+    }
+});
+
+// Role-specific login routes for frontend
+router.post('/login/admin', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Email and password are required' 
+            });
+        }
+
+        // Find user and check if admin
+        const user = await User.findOne({ 
+            email: email.toLowerCase(),
+            role: 'admin'
+        });
+        
+        if (!user) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid credentials or not an admin account' 
+            });
+        }
+
+        // Check password
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid credentials' 
+            });
+        }
+
+        // Create and sign JWT
+        const token = jwt.sign(
+            {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            },
+            process.env.SECRET_KEY,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error("Admin login error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server error during login' 
+        });
+    }
+});
+
+router.post('/login/receptionist', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Email and password are required' 
+            });
+        }
+
+        // Find user and check if receptionist
+        const user = await User.findOne({ 
+            email: email.toLowerCase(),
+            role: 'receptionist'
+        });
+        
+        if (!user) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid credentials or not a receptionist account' 
+            });
+        }
+
+        // Check password
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid credentials' 
+            });
+        }
+
+        // Create and sign JWT
+        const token = jwt.sign(
+            {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            },
+            process.env.SECRET_KEY,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error("Receptionist login error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server error during login' 
+        });
+    }
+});
+
+router.post('/login/doctor', async (req, res) => {
+    try {
+        const { govtRegistrationNumber, password } = req.body;
+
+        if (!govtRegistrationNumber || !password) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Government registration number and password are required' 
+            });
+        }
+
+        // Find doctor by government registration number
+        const doctor = await Doctor.findOne({ govtRegistrationNumber });
+        if (!doctor) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid government registration number or doctor account not found' 
+            });
+        }
+
+        // Find associated user account
+        const user = await User.findOne({ 
+            _id: doctor.userId,
+            role: 'doctor'
+        });
+        
+        if (!user) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Doctor account not properly configured' 
+            });
+        }
+
+        // Check password
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid credentials' 
+            });
+        }        // Create and sign JWT
+        const token = jwt.sign(
+            {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                doctorId: doctor._id,
+                isDoctor: true
+            },
+            process.env.SECRET_KEY,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                doctorId: doctor._id,
+                name: doctor.name,
+                specialization: doctor.specialization
+            }
+        });
+    } catch (error) {
+        console.error("Doctor login error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server error during login' 
+        });
     }
 });
 

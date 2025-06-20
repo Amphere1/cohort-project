@@ -18,9 +18,9 @@ router.get('/protected', verifyToken, (req, res) => {
 // Use routes
 router.use('/auth', authRoutes);
 router.use('/doctors', doctorRoutes);
+router.use('/doctor', doctorRoutes); // Add doctor-specific routes
 router.use('/patients', patientRoutes);
 router.use('/prescriptions', prescriptionsRoutes);
-router.use('/voice', voice )
-
+router.use('/voice', voice );
 
 export default router;

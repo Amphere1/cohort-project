@@ -174,9 +174,11 @@ const MedicationSchema = z.object({
 
 // Schema for prescription output
 const PrescriptionSchema = z.object({
+  patientName: z.string().describe("Patient's name"),
+  patientAge: z.number().describe("Patient's age"),
   medications: z.array(MedicationSchema).describe("List of prescribed medications"),
   diagnosis: z.string().describe("Preliminary diagnosis or assessment"),
-  generalInstructions: z.string().describe("General instructions for the patient"),
+  generalInstructions: z.array(z.string()).describe("General instructions for the patient"),
   followUp: z.string().describe("Follow-up recommendations"),
   lifestyle: z.array(z.string()).describe("Lifestyle or diet recommendations"),
   precautions: z.array(z.string()).describe("Important precautions for the patient"),
@@ -304,15 +306,17 @@ ${Object.keys(doctorPreferences).length > 0 ?
   `NOTE: Medications listed with "(Doctor's frequent choice)" are this doctor's preferred medications for similar cases and should be prioritized when appropriate.` : ''}
 
 Based on this information, please generate a detailed prescription recommendation in JSON format with the following structure:
-1. A likely diagnosis
-2. Medications with detailed instructions
-3. General instructions for the patient
-4. Follow-up recommendations
-5. Lifestyle recommendations
-6. Important precautions
-7. Specialist referrals if needed
+1. Patient name and age (exactly as provided)
+2. A likely diagnosis
+3. Medications with detailed instructions
+4. General instructions for the patient
+5. Follow-up recommendations
+6. Lifestyle recommendations
+7. Important precautions
+8. Specialist referrals if needed
 
 IMPORTANT GUIDELINES:
+- Include the patient's name and age exactly as provided in the input
 - Be specific with medication dosages, frequencies, and durations
 - Consider patient age, symptoms, and medical history
 - Note any potential drug interactions with current medications

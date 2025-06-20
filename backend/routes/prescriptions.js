@@ -12,10 +12,10 @@ import {
 const router = express.Router();
 
 // Get a doctor's prescription preferences
-router.get('/doctor-preferences', verifyReceptionist, async (req, res) => {
+router.get('/doctor-preferences', verifyDoctor, async (req, res) => {
   try {
     const DoctorPreferences = await import('../models/doctorPreferencesModel.js').then(m => m.default);
-    const doctorId = req.user._id;
+    const doctorId = req.doctorData.doctorId;
     
     const preferences = await DoctorPreferences.findOne({ doctorId });
     
@@ -41,12 +41,12 @@ router.get('/doctor-preferences', verifyReceptionist, async (req, res) => {
 });
 
 // Generate a prescription recommendation
-router.post('/generate', verifyReceptionist, async (req, res) => {
+router.post('/generate', verifyDoctor, async (req, res) => {
   try {
     // Add doctor ID to the patient info for personalized recommendations
     const patientInfo = {
       ...req.body,
-      doctorId: req.user._id.toString()
+      doctorId: req.doctorData.doctorId.toString()
     };
     
     // Validate required fields
@@ -73,10 +73,10 @@ router.post('/generate', verifyReceptionist, async (req, res) => {
 });
 
 // Apply doctor's modifications to a prescription and learn from them
-router.post('/modify', verifyReceptionist, async (req, res) => {
+router.post('/modify', verifyDoctor, async (req, res) => {
   try {
     const { originalPrescription, modifications } = req.body;
-    const doctorId = req.user._id;
+    const doctorId = req.doctorData.doctorId;
     
     if (!originalPrescription || !modifications) {
       return res.status(400).json({
@@ -134,7 +134,7 @@ router.post('/modify', verifyReceptionist, async (req, res) => {
 router.get('/doctor-prescriptions', verifyDoctor, async (req, res) => {
   try {
     // Since verifyDoctor middleware ensures this is a doctor
-    const doctorId = req.user.doctorId;
+    const doctorId = req.doctorData.doctorId;
     
     const DoctorPreferences = await import('../models/doctorPreferencesModel.js').then(m => m.default);
     
@@ -176,6 +176,50 @@ router.get('/doctor-prescriptions', verifyDoctor, async (req, res) => {
     console.error('Error fetching doctor prescriptions:', error);
     return res.status(500).json({
       message: 'Error fetching doctor prescriptions',
+      error: error.message
+    });
+  }
+});
+
+// Check drug interactions for a prescription
+router.post('/interactions', verifyDoctor, async (req, res) => {
+  try {
+    const { medications, currentMedications = [] } = req.body;
+    
+    if (!medications || !Array.isArray(medications)) {
+      return res.status(400).json({
+        message: 'Medications array is required'
+      });
+    }
+    
+    // Extract medication names from the prescription
+    const prescribedMedications = medications.map(med => 
+      typeof med === 'string' ? med : med.name
+    ).filter(Boolean);
+    
+    if (prescribedMedications.length === 0) {
+      return res.status(400).json({
+        message: 'No valid medications found to check'
+      });
+    }
+    
+    // Check for drug interactions
+    const interactions = await checkPrescriptionInteractions({
+      prescribedMedications,
+      currentMedications
+    });
+    
+    return res.status(200).json({
+      message: 'Drug interactions checked successfully',
+      interactions,
+      prescribedMedications,
+      currentMedications
+    });
+    
+  } catch (error) {
+    console.error('Error checking drug interactions:', error);
+    return res.status(500).json({
+      message: 'Error checking drug interactions',
       error: error.message
     });
   }

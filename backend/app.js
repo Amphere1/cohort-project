@@ -29,7 +29,8 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/doctors', doctorRoutes);
+app.use('/api/doctor', doctorRoutes); // Doctor-specific routes (MUST come before /api/doctors)
+app.use('/api/doctors', doctorRoutes); // Admin/receptionist routes for doctor management
 app.use('/api/patients', patientRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/voice', voice )
@@ -215,7 +216,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   .then(() => console.log('Connected to MongoDB'))
   .catch(error => console.error('MongoDB connection error:', error));
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
