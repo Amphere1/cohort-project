@@ -242,20 +242,20 @@ export const adminApi = {  async getDoctors(): Promise<{ data: Doctor[] }> {
   },
 
   async updateDoctor(id: string, doctorData: Partial<Doctor>): Promise<Doctor> {
-    return apiRequest(`http://localhost:3001/api/doctors/${id}`, {
+    return apiRequest(`/api/doctors/${id}`, {
       method: 'PUT',
       body: JSON.stringify(doctorData),
     });
   },
 
   async toggleDoctorStatus(id: string): Promise<ApiResponse> {
-    return apiRequest(`http://localhost:3001/api/doctors/${id}/status`, {
+    return apiRequest(`/api/doctors/${id}/status`, {
       method: 'PATCH',
     });
   },
 
   async deleteDoctor(id: string): Promise<ApiResponse> {
-    return apiRequest(`http://localhost:3001/api/doctors/${id}`, {
+    return apiRequest(`/api/doctors/${id}`, {
       method: 'DELETE',
     });
   },
@@ -264,29 +264,29 @@ export const adminApi = {  async getDoctors(): Promise<{ data: Doctor[] }> {
 // Receptionist API functions
 export const receptionistApi = {
   async getDoctors(): Promise<{ data: Doctor[] }> {
-    return apiRequest('http://localhost:3001/api/doctors');
+    return apiRequest('/api/doctors');
   },
 
   async getAppointments(): Promise<{ data: Appointment[] }> {
-    return apiRequest('http://localhost:3001/api/patients');
+    return apiRequest('/api/patients');
   },
 
   async createAppointment(appointmentData: Partial<Appointment>): Promise<Appointment> {
-    return apiRequest('http://localhost:3001/api/patients', {
+    return apiRequest('/api/patients', {
       method: 'POST',
       body: JSON.stringify(appointmentData),
     });
   },
 
   async updateAppointment(id: string, appointmentData: Partial<Appointment>): Promise<Appointment> {
-    return apiRequest(`http://localhost:3001/api/patients/${id}`, {
+    return apiRequest(`/api/patients/${id}`, {
       method: 'PUT',
       body: JSON.stringify(appointmentData),
     });
   },
 
   async deleteAppointment(id: string): Promise<ApiResponse> {
-    return apiRequest(`http://localhost:3001/api/patients/${id}`, {
+    return apiRequest(`/api/patients/${id}`, {
       method: 'DELETE',
     });
   },

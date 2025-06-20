@@ -1,8 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Healthcare Management System - Frontend
+
+This is a [Next.js](https://nextjs.org) project for a healthcare management system with role-based dashboards.
+
+## Environment Setup
+
+1. **Copy the environment file:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Configure the backend URL:**
+   Edit `.env` and set your backend URL:
+   ```env
+   NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+   ```
+
+3. **For production deployment:**
+   ```env
+   NEXT_PUBLIC_BACKEND_URL=https://your-api-domain.com
+   ```
 
 ## Getting Started
 
 First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Project Structure
+
+- **Role-based authentication:** Admin, Doctor, Receptionist
+- **Doctor Dashboard:** Appointments, prescriptions, case summaries
+- **Admin Panel:** Doctor management, system overview
+- **Receptionist Interface:** Patient registration, appointment scheduling
+
+## Features
+
+- ✅ Role-based authentication and authorization
+- ✅ Real-time appointment management
+- ✅ AI-powered prescription generation
+- ✅ Drug interaction checking
+- ✅ Case summary generation
+- ✅ Responsive design with modern UI
+
+## Login Credentials (Development)
+
+**Doctors:**
+- Email: `divya.mehta@hospital.com` | Password: `doctor123`
+- Email: `arjun.brown@hospital.com` | Password: `doctor123`
+
+**Admin:**
+- Email: `admin@healthclinic.com` | Password: `HealthClinic@2025`
+
+**Receptionist:**
+- Email: `reception@healthclinic.com` | Password: `HealthClinic@2025`
 
 ```bash
 npm run dev
