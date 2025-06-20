@@ -139,3 +139,59 @@ export const verifyAny = async (req, res, next) => {
     });
   }
 };
+
+// Middleware to verify doctor or receptionist role (for appointment management)
+export const verifyDoctorOrReceptionist = async (req, res, next) => {
+  try {
+    // Get token from header
+    const token = req.header('Authorization').replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Access denied. No token provided' 
+      });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    
+    // Get user from database
+    const user = await User.findById(decoded._id);
+    
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token: User not found' 
+      });
+    }
+    
+    // Check if user has doctor, receptionist, or admin role
+    if (user.role !== 'doctor' && user.role !== 'receptionist' && user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Access denied. Doctor or receptionist privileges required' 
+      });
+    }
+
+    // Add user to request object
+    req.user = user;
+    req.token = token;
+    
+    // If it's a doctor, also add doctor-specific data from JWT
+    if (user.role === 'doctor' || decoded.isDoctor) {
+      req.doctorData = {
+        doctorId: decoded.doctorId,
+        isDoctor: decoded.isDoctor || decoded.role === 'doctor'
+      };
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Doctor/Receptionist auth error:', error);
+    res.status(401).json({ 
+      success: false, 
+      message: 'Invalid token or session expired' 
+    });
+  }
+};

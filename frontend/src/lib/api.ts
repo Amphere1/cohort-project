@@ -25,7 +25,7 @@ export interface Doctor {
   email: string;
   phone: string;
   specialization: string;
-  registrationNumber: string;
+  govtRegistrationNumber: string;
   active: boolean;
   createdAt: string;
 }

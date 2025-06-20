@@ -68,13 +68,49 @@ export default function DoctorLoginPage() {
               Access your medical dashboard
             </p>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent>            <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
                   {error}
                 </div>
               )}
+                {/* Sample Doctor Credentials Information */}
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md text-sm">
+                <div className="font-medium mb-1">How to Login as Doctor:</div>
+                <div className="text-xs space-y-2">
+                  <div>
+                    <strong>1. Get Registration Number:</strong> You can get govt registration number of the assigned doctor in the doctor section of reception dashboard
+                  </div>
+                  <div>
+                    <strong>2. Default Password:</strong> doctor123
+                  </div>
+                  <div className="text-blue-600 font-medium">
+                    Sample Registration: NMC-2021-54077, DMC-2017-64253, SMC-2018-40127
+                  </div>
+                </div>                <div className="flex gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => window.open('/reception', '_blank')}
+                  >
+                    Open Reception Dashboard
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setFormData({
+                      govtRegistrationNumber: 'NMC-2021-54077',
+                      password: 'doctor123'
+                    })}
+                  >
+                    Use Sample Registration
+                  </Button>
+                </div>
+              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="govtRegistrationNumber">Government Registration Number</Label>

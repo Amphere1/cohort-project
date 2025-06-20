@@ -1,7 +1,8 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import PatientDetail from '../models/patientDeatilsModel.js';
 import verifyToken from '../middleware/auth.js';
-import { verifyReceptionist } from '../middleware/roleAuth.js';
+import { verifyReceptionist, verifyDoctorOrReceptionist } from '../middleware/roleAuth.js';
 
 const router = express.Router();
 
@@ -19,15 +20,23 @@ router.post('/', verifyReceptionist, async (req, res) => {
 
     // Import AI functions for doctor assignment and case summarization
     const { assignDoctorForSymptoms, summarizePatientCase } = await import('../genkit/appointments.js');
-    
-    console.log('Assigning doctor based on symptoms:', symptoms);
+      console.log('Assigning doctor based on symptoms:', symptoms);
     // Use Genkit to assign the most appropriate doctor based on symptoms
-    const doctorAssignment = await assignDoctorForSymptoms({
-      symptoms,
-      preferredDoctor
-    });
-    
-    console.log('Doctor assignment result:', doctorAssignment);
+    let doctorAssignment;
+    try {
+      doctorAssignment = await assignDoctorForSymptoms({
+        symptoms,
+        preferredDoctor
+      });
+      console.log('Doctor assignment result:', doctorAssignment);
+    } catch (error) {
+      console.error('Error in doctor assignment:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to assign doctor due to AI service error. Please try again.',
+        error: error.message
+      });
+    }
     
     if (!doctorAssignment || (!doctorAssignment.doctorId && !doctorAssignment.specialization)) {
       return res.status(400).json({
@@ -55,14 +64,13 @@ router.post('/', verifyReceptionist, async (req, res) => {
     }
 
     // Calculate appointment date (next business day)
-    const appointmentDate = calculateNextBusinessDay();
-      // Create new patient with provided details and assigned doctor
+    const appointmentDate = calculateNextBusinessDay();    // Create new patient with provided details and assigned doctor
     const newPatient = new PatientDetail({
       name,
       age,
       symptoms,
       preferredDoctor,
-      assignedDoctorId: doctorAssignment.doctorId,
+      assignedDoctorId: doctorAssignment.doctorId ? new mongoose.Types.ObjectId(doctorAssignment.doctorId) : null,
       assignedDoctorName: doctorAssignment.doctorName,
       recommendedSpecialization: doctorAssignment.specialization,
       appointmentStatus: 'scheduled',
@@ -76,6 +84,9 @@ router.post('/', verifyReceptionist, async (req, res) => {
         suggestedQuestions: caseSummary.suggestedQuestions
       } : null
     });
+    
+    console.log('Creating patient with assignedDoctorId string:', doctorAssignment.doctorId);
+    console.log('Converted to ObjectId:', newPatient.assignedDoctorId);
     
     // Save the patient
     const savedPatient = await newPatient.save();
@@ -369,7 +380,7 @@ router.get('/appointments', verifyReceptionist, async (req, res) => {
  * @desc    Update appointment details
  * @access  Private
  */
-router.put('/:id/appointment', verifyReceptionist, async (req, res) => {
+router.put('/:id/appointment', verifyDoctorOrReceptionist, async (req, res) => {
   try {
     const { appointmentStatus, appointmentDate, assignedDoctorId } = req.body;
     

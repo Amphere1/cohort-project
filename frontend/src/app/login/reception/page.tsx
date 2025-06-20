@@ -64,13 +64,32 @@ export default function ReceptionLoginPage() {
               Manage appointments and patient records
             </p>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent>            <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
                   {error}
                 </div>
               )}
+                {/* Default Credentials Information */}
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md text-sm">
+                <div className="font-medium mb-1">Default Reception Credentials:</div>
+                <div className="text-xs space-y-1">
+                  <div>Email: reception@healthclinic.com</div>
+                  <div>Password: HealthClinic@2025</div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 text-xs"
+                  onClick={() => setFormData({
+                    email: 'reception@healthclinic.com',
+                    password: 'HealthClinic@2025'
+                  })}
+                >
+                  Use Default Credentials
+                </Button>
+              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>

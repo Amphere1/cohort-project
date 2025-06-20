@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,8 +39,9 @@ export default function DoctorDashboard() {
   const [todaysAppointments, setTodaysAppointments] = useState<Appointment[]>([]);
   const [recentPrescriptions, setRecentPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null); // Start as null to prevent hydration mismatch
   const [doctor, setDoctor] = useState<User | null>(null);
+  const [totalAppointments, setTotalAppointments] = useState(0); // For debugging
   // Fetch doctor data on component mount
   useEffect(() => {
     const user = getCurrentUser();
@@ -57,50 +58,82 @@ export default function DoctorDashboard() {
       router.push('/login/doctor');
       return;
     }
-    
-    console.log('Dashboard: User authenticated as doctor, setting user data');
+      console.log('Dashboard: User authenticated as doctor, setting user data');
     setDoctor(user);
+    
+    // Initialize time on client side to prevent hydration mismatch
+    setCurrentTime(new Date());
     
     // Update time every minute
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
     
-    return () => clearInterval(timeInterval);
-  }, [router]);
-  // Fetch appointments and recent prescriptions
+    return () => clearInterval(timeInterval);}, [router]);  // Fetch appointments and recent prescriptions
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      console.log('Dashboard: Current doctor user:', doctor);
+      console.log('Dashboard: Making API request to /api/doctor/appointments');
+      
+      // Fetch all appointments
+      const appointmentsData = await apiRequest<{appointments: Appointment[]}>('/api/doctor/appointments');
+      
+      console.log('Dashboard: Raw appointments data:', appointmentsData);
+      
+      // Sort all appointments by date/time
+      const sortedAppointments = (appointmentsData.appointments || [])
+        .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+      
+      console.log('Dashboard: Total appointments fetched:', sortedAppointments.length);
+      setTotalAppointments(sortedAppointments.length);
+      console.log('Dashboard: All appointments:', sortedAppointments.map(a => ({
+        id: a._id,
+        name: a.name,
+        date: a.appointmentDate,
+        status: a.appointmentStatus
+      })));      // TEMPORARY: Show all appointments for debugging
+      console.log('Dashboard: Showing ALL appointments for debugging');
+      const todaysAppts = sortedAppointments;
+      
+      console.log('Dashboard: Found today\'s appointments:', todaysAppts.length);
+      console.log('Dashboard: Today\'s appointments data:', todaysAppts);
+      setTodaysAppointments(todaysAppts);
+      // Fetch recent prescriptions
+      const prescriptionsData = await apiRequest<{prescriptions: Prescription[]}>('/api/prescriptions/doctor-prescriptions?limit=5');
+      setRecentPrescriptions(prescriptionsData.prescriptions || []);      setLoading(false);
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+      setLoading(false);
+    }
+  }, [doctor]);
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      try {
-        // Fetch all appointments
-        const appointmentsData = await apiRequest<{appointments: Appointment[]}>('/api/doctor/appointments');
-        
-        // Sort all appointments by date/time
-        const sortedAppointments = (appointmentsData.appointments || [])
-          .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
-        
-        // Filter today's appointments
-        const todaysAppts = sortedAppointments
-          .filter(appt => new Date(appt.appointmentDate).toDateString() === new Date().toDateString());
-        
-        setTodaysAppointments(todaysAppts);
-        // Fetch recent prescriptions
-        const prescriptionsData = await apiRequest<{prescriptions: Prescription[]}>('/api/prescriptions/doctor-prescriptions?limit=5');
-        setRecentPrescriptions(prescriptionsData.prescriptions || []);
-          setLoading(false);
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
     
     // Set up polling for real-time updates
     const pollInterval = setInterval(fetchDashboardData, 30000); // Poll every 30 seconds
-    return () => clearInterval(pollInterval);
-  }, []);
+    
+    // Refresh data when window gains focus (user returns from another page)
+    const handleFocus = () => {
+      fetchDashboardData();
+    };
+    
+    // Refresh data when page becomes visible (user switches tabs)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchDashboardData();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchDashboardData]);
   
   // Format appointment time
   const formatAppointmentTime = (dateString: string) => {
@@ -135,18 +168,22 @@ export default function DoctorDashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <div className="container mx-auto px-4 py-6">      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
-          <p className="text-gray-500 mt-1">
-            Welcome back, {doctor?.name || 'Doctor'} | {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <h1 className="text-3xl font-bold text-primary">Dashboard</h1>          <p className="text-gray-500 mt-1">
+            Welcome back, {doctor?.name || 'Doctor'}{currentTime ? ` | ${currentTime.toLocaleDateString()} ${currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
           </p>
         </div>
-        <Button variant="ghost" onClick={handleLogout} className="gap-2">
-          <LogOut className="h-4 w-4" />
-          Logout
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchDashboardData} className="gap-2" disabled={loading}>
+            <Bell className="h-4 w-4" />
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Button variant="ghost" onClick={handleLogout} className="gap-2">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -238,6 +275,12 @@ export default function DoctorDashboard() {
             <Card>
               <CardContent className="text-center py-12">
                 <p className="text-gray-500">No appointments scheduled for today.</p>
+                <div className="mt-4 text-xs text-gray-400">
+                  <p>Debug info:</p>
+                  <p>Total appointments: {totalAppointments}</p>
+                  <p>Today&apos;s date: {new Date().toDateString()}</p>
+                  <p>Loading: {loading.toString()}</p>
+                </div>
               </CardContent>
             </Card>
           ) : (
@@ -259,8 +302,7 @@ export default function DoctorDashboard() {
                         <Clock className="h-4 w-4 mr-1 text-primary" />
                         {formatAppointmentTime(appointment.appointmentDate)}
                       </span>
-                    </div>
-                    <CardDescription>
+                    </div>                    <CardDescription>
                       Age: {appointment.age} • Status: {' '}
                       <span className={`font-medium ${
                         appointment.appointmentStatus === 'completed' ? 'text-green-600' : 
@@ -269,6 +311,8 @@ export default function DoctorDashboard() {
                       }`}>
                         {appointment.appointmentStatus.charAt(0).toUpperCase() + appointment.appointmentStatus.slice(1)}
                       </span>
+                      <br />
+                      <span className="text-xs text-gray-500">Date: {appointment.appointmentDate}</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

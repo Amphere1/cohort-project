@@ -20,6 +20,7 @@ router.get('/appointments', verifyDoctor, async (req, res) => {
   try {
     const doctorId = req.doctorData.doctorId;
     console.log('Doctor appointments query - doctorId from token:', doctorId);
+    console.log('Doctor appointments query - doctorId type:', typeof doctorId);
     
     const PatientDetail = await import('../models/patientDeatilsModel.js').then(m => m.default);
     
@@ -28,11 +29,18 @@ router.get('/appointments', verifyDoctor, async (req, res) => {
     const objectId = new mongoose.Types.ObjectId(doctorId);
     console.log('Doctor appointments query - converted ObjectId:', objectId);
     
+    // First, let's see what appointments exist in the database
+    const allAppointments = await PatientDetail.find({}).select('name assignedDoctorId assignedDoctorName appointmentDate appointmentStatus');
+    console.log('All appointments in database:');
+    allAppointments.forEach(apt => {
+      console.log(`- ${apt.name}: assigned to doctorId ${apt.assignedDoctorId} (${apt.assignedDoctorName})`);
+    });
+    
     const appointments = await PatientDetail.find({ 
       assignedDoctorId: objectId
     }).sort({ appointmentDate: -1 });
     
-    console.log('Doctor appointments query - found appointments:', appointments.length);
+    console.log('Doctor appointments query - found appointments for this doctor:', appointments.length);
     
     res.status(200).json({
       success: true,

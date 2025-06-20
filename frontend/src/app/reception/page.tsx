@@ -40,6 +40,7 @@ type Doctor = {
   _id: string;
   name: string;
   specialization: string;
+  govtRegistrationNumber: string;
   active: boolean;
 };
 
@@ -136,11 +137,11 @@ export default function ReceptionDashboard() {
       setFilteredDoctors(doctors);
       return;
     }
-    
-    const term = doctorSearchTerm.toLowerCase();
+      const term = doctorSearchTerm.toLowerCase();
     const filtered = doctors.filter(doctor => 
       doctor.name.toLowerCase().includes(term) ||
-      doctor.specialization.toLowerCase().includes(term)
+      doctor.specialization.toLowerCase().includes(term) ||
+      doctor.govtRegistrationNumber.toLowerCase().includes(term)
     );
     
     setFilteredDoctors(filtered);
@@ -665,10 +666,9 @@ export default function ReceptionDashboard() {
         <TabsContent value="doctors" className="mt-4">
           {/* Search bar */}
           <div className="relative mb-6">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />            <Input
               className="pl-10"
-              placeholder="Search doctors by name or specialization..."
+              placeholder="Search doctors by name, specialization, or registration number..."
               value={doctorSearchTerm}
               onChange={(e) => setDoctorSearchTerm(e.target.value)}
             />
@@ -700,8 +700,7 @@ export default function ReceptionDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredDoctors.map(doctor => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">              {filteredDoctors.map(doctor => (
                 <Card key={doctor._id}>
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -709,9 +708,14 @@ export default function ReceptionDashboard() {
                       {doctor.name}
                     </CardTitle>
                     <CardDescription>
-                      {doctor.specialization || 'General Practitioner'}
+                      <div className="space-y-1">
+                        <div>{doctor.specialization || 'General Practitioner'}</div>
+                        <div className="text-xs text-gray-500 font-mono">
+                          Reg: {doctor.govtRegistrationNumber}
+                        </div>
+                      </div>
                     </CardDescription>
-                  </CardHeader>                  <CardContent>
+                  </CardHeader><CardContent>
                     <Button 
                       className="w-full" 
                       onClick={() => {
