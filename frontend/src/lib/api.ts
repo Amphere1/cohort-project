@@ -137,7 +137,7 @@ export async function loginUser(
   endpoint: string, 
   credentials: { [key: string]: string }
 ): Promise<{user: User, token: string}> {
-  const response = await apiRequest<{user: User, token: string, success?: boolean}>(
+  const response = await apiRequest<{user: User, token: string, doctor?: Doctor, success?: boolean}>(
     endpoint,
     {
       method: 'POST',
@@ -146,9 +146,22 @@ export async function loginUser(
   );
   
   // Handle both direct response and success wrapper response
-  const user = response.user;
+  let user = response.user;
   const token = response.token;
-    // Store user data and token in localStorage
+  
+  // If this is a doctor login (endpoint contains 'doctor-login' or response has doctor data)
+  if (endpoint.includes('doctor-login') || response.doctor) {
+    // Ensure the user has the doctor role
+    user = { ...user, role: 'doctor' as UserRole };
+    
+    // Store doctor-specific data if available
+    if (response.doctor) {
+      localStorage.setItem('doctor', JSON.stringify(response.doctor));
+      localStorage.setItem('doctorId', response.doctor._id);
+    }
+  }
+  
+  // Store user data and token in localStorage
   localStorage.setItem('token', token);
   localStorage.setItem('user', JSON.stringify(user));
   
@@ -159,6 +172,8 @@ export async function loginUser(
 export function logoutUser() {
   localStorage.removeItem('user');
   localStorage.removeItem('token');
+  localStorage.removeItem('doctor');
+  localStorage.removeItem('doctorId');
 }
 
 // Alias for backward compatibility
